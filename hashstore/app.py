@@ -3,6 +3,8 @@ from flask import Flask, jsonify, request
 import requests, hashlib, os, logging
 from prometheus_flask_exporter import PrometheusMetrics
 
+# Set environment variable to enable metrics
+os.environ["DEBUG_METRICS"] = 'true'
 logging.basicConfig(level=logging.INFO)
 logging.info("Setting LOGLEVEL to INFO")
 
