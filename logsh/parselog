@@ -1,0 +1,139 @@
+#!/bin/bash
+# Developed by Ketan Patel strictly for interview purpose.
+# 
+
+# Checking Input 
+if [ $# -lt 1 ]; then
+	echo "Usage : $0 <Log_file> [<CIDR>] [<Size Unit>]" 
+	echo "Supported CIDR 8, 16 and 24 :: Default Values is 24"
+	echo "Supported Unit of size is K, M and G :: Default Value is K" && exit 1
+fi
+
+# Variables 
+tmpfl=.$(date "+%a").ip.k2
+tmpsl=.$(date "+%a").ip.srt
+filog="${1}"
+unit="${3}"
+
+# Removing any previous Mess
+rm -rf ${tmpsl} ${tmpfl}
+
+# Checking CIDR
+if [[ $2 = 0 ]]; then
+	echo "no CIDR fall back to 24"
+elif [ $2 -eq $2 2> /dev/null ]; then
+	cidr="${2}"
+else
+	echo "CIDR Must be number" && exit 1
+fi
+
+# Converting IP to segment and storing in file based on CIDR
+conv(){
+	OIFS=$IFS
+	IFS='.'
+	soip=($1)
+	IFS=$OIFS
+	if [[ $cidr = 8 ]]; then
+		echo "${soip[0]}.0.0.0" >> "${tmpsl}"
+	elif [[ $cidr = 16 ]]; then
+		echo "${soip[0]}.${soip[1]}.0.0" >> "${tmpsl}"
+	else
+		echo "${soip[0]}.${soip[1]}.${soip[2]}.0" >> "${tmpsl}"
+	fi
+}
+
+echo "####### Printing Number of requests per CIDR"
+echo " "
+echo " "
+
+# Processing files and log
+if [ -f "${filog}" ]; then
+	if cat "${filog}" | awk '{print $1}' > "${tmpfl}"
+	then
+		echo ""
+	else
+		echo "failed to create file"
+	fi
+
+	while read k2;
+	do
+	conv $k2
+	done < "${tmpfl}"
+
+# Printing Results 
+	cat "${tmpsl}" | sort | uniq -c | sort -r -b -g
+
+# Removing files
+	rm -rf ${tmpsl} ${tmpfl}
+
+else
+	echo "file Does not Exists"
+fi
+
+showstmp(){
+if [[ $unit = "G" ]]; then
+        echo "Hour $1 $(bc -l <<< "scale=3; ${2}/1024/1024/1024")G" 
+elif [[ $unit = "M" ]]; then
+        echo "Hour $1 $(bc -l <<< "scale=3; ${2}/1024/1024")M"
+else
+        echo "Hour $1 $(bc -l <<< "scale=3; ${2}/1024")K"
+fi
+}
+
+echo " "
+echo "####### Total number of bytes served per hour"
+echo " "
+
+# Grabing for Date / Time / Status / Size
+cat "${filog}" | awk -F'[ "]+' '{print $4, $9, $10 }' | sed 's/[\[ \/]/:/g' | awk -F : '{ if ($9 != "-") print $2, $3, $4, $5, $6, $7, $8, $9}' > "${tmpfl}"
+
+iniloop='1'
+served='0'
+sucess='0'
+
+while read k2
+do
+
+	if [[ "$(awk '{print $7}' <<< ${k2})" = "200" ]]; then
+        	sucess=$(bc <<< 1+${sucess})
+	fi 
+
+        if [[ ${iniloop} = '1' ]]; then
+                oldline="$(awk '{print $4}' <<< ${k2})"
+                newline="${oldline}"
+        else
+                newline="$(awk '{print $4}' <<< ${k2})"
+        fi
+        if [[ "${oldline}" = "${newline}" ]]; then
+                oldline="$(awk '{print $4}' <<< ${k2})"
+                served=$(bc <<< $(awk '{print $8}' <<< ${k2})+${served})
+                iniloop+=iniloop
+        else
+                showstmp "${oldline}" "${served}"
+                served='0'
+                oldline="$(awk '{print $4}' <<< ${k2})"
+                served=$(bc <<< $(awk '{print $8}' <<< ${k2})+${served})
+                iniloop+=iniloop
+        fi
+
+done < "${tmpfl}"
+showstmp ${oldline} ${served}
+
+# Removing files
+        rm -rf ${tmpsl} ${tmpfl}
+
+echo "######### Total number successful page loads"
+echo " "
+echo "Successfull Connection : $sucess"
+
+echo "######### sorted from most to least requested"
+echo " "
+
+# if cat ${filog} | awk -F'[ "]+' '{print $7 }' | sort | uniq -c | sort -i -f -b -V -d
+if cat ${filog} | awk -F'[ "]+' '{print $7 }' | sort | uniq -c | sort -i -f -r -b -V -d
+then
+        echo ""
+else
+	echo "Failed parsing file"
+	exit 1
+fi

@@ -1,0 +1,5 @@
+3. Write a script(s) (shell preferred) that parses a standard apache log file (combined format, 1 day period length) and produces the following output:
+	- Number of requests per CIDR /24 sorted from most to least.  Extra credit if you make the script adjustable for other netblock sizes besides /24
+	- Total number of bytes served per hour (ie 1am: 24MB, 2am 38MB, etc)
+	- Total number successful page loads
+	- Number of requests for a resource sorted from most to least requested
