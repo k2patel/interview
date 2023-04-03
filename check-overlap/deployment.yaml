@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: check-overlap
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: check-overlap
+  template:
+    metadata:
+      labels:
+        app: check-overlap
+    spec:
+      containers:
+      - name: check-overlap
+        image: <DOCKER_USERNAME>/check-overlap:<IMAGE_TAG>
+        ports:
+        - containerPort: 8080
