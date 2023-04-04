@@ -1,0 +1,41 @@
+---
+# - name: Simle execution
+#   community.general.terraform:
+#     project_path: '../terraform'
+#     state: present
+# Alternatively following method can be used too...
+# loop:
+#   - {
+#       region: 'us-west1',
+#       zone: 'us-west1-b',
+#       zones:
+#         - us-west1-b
+#     }
+# {{ item.region }}, {{ item.zone }}, {{ item.zones }}
+#
+
+
+- name: Simple plan mode
+  hosts: localhost
+  check_mode: true
+  vars:
+    project_dir: '../terraform'
+  tasks:
+    - name: Basic plan for west1
+      loop:
+        - us-west1
+        - us-east1
+      community.general.terraform:
+        project_path: '../terraform'
+        force_init: true
+        workspace: "{{ item }}"
+        complex_vars: true
+        variables:
+          zone: "{{ item + '-b' }}"
+          region: "{{ item }}"
+          zones:
+            - "{{ item + '-b' }}"
+      register: outputs
+    - name: tf outputs
+      debug:
+        var: outputs

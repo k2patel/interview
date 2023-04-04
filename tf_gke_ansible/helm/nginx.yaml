@@ -1,0 +1,40 @@
+# To create a deployment of Nginx web server using kubectl and expose the port, you can create a YAML file, 
+# for example nginx-deployment.yaml, with the following contents:
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-unqork
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hello-unqork
+  template:
+    metadata:
+      labels:
+        app: hello-unqork
+    spec:
+      containers:
+      - name: hello-unqork
+        image: docker.io/library/nginx:latest
+        resources:                   # add the resources block
+          limits:                    # specify the resource limits
+            cpu: "0.5"
+            memory: "512Mi"
+          requests:                  # specify the resource requests
+            cpu: "0.25"
+            memory: "256Mi"
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-unqork
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+  selector:
+    app: hello-unqork
