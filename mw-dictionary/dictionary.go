@@ -55,6 +55,10 @@ func formatDefinition(pronunciation string, partOfSpeech string, definition stri
 func main() {
 
 	apiKey := os.Getenv("MERRIAM_WEBSTER_API_KEY")
+	if apiKey == "" {
+		fmt.Fprintf(os.Stderr, "MERRIAM_WEBSTER_API_KEY environment variable not set")
+		os.Exit(1)
+	}
 
 	if len(os.Args) != 2 {
 		fmt.Println("Usage: go run dictionary.go <word>")

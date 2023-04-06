@@ -36,11 +36,17 @@ func getDefinitions(word, apiKey string) ([]string, error) {
 }
 
 func main() {
-	word := "park"
 	apiKey := os.Getenv("MERRIAM_WEBSTER_API_KEY")
 	if apiKey == "" {
 		log.Fatal("MERRIAM_WEBSTER_API_KEY environment variable not set")
 	}
+
+	if len(os.Args) != 2 {
+		fmt.Println("Usage: go run dictionary.go <word>")
+		return
+	}
+
+	word := os.Args[1]
 
 	definitions, err := getDefinitions(word, apiKey)
 	if err != nil {
