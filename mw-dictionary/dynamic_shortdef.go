@@ -1,22 +1,14 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
-	"strings"
-)
 
-type APIResponse struct {
-	Hwi struct {
-		Prs []struct {
-			Mw string `json:"mw"`
-		} `json:"prs"`
-	} `json:"hwi"`
-	Fl       string   `json:"fl"`
-	Shortdef []string `json:"shortdef"`
-}
+	"io/ioutil"
+	"net/http"
+
+	"github.com/Jeffail/gabs/v2"
+)
 
 func main() {
 	// Get the API key from environment variable
@@ -42,36 +34,41 @@ func main() {
 	}
 	defer resp.Body.Close()
 
-	// Decode the API response JSON
-	var apiResponse []APIResponse
-	err = json.NewDecoder(resp.Body).Decode(&apiResponse)
+	// Read the API response body
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error decoding API response:", err)
+		fmt.Println("Error reading API response:", err)
 		return
 	}
 
-	// Extract and display the word's pronunciation and part of speech
-	if len(apiResponse) == 0 {
-		fmt.Println("No results found for the word:", word)
+	// Parse the JSON response using gabs
+	jsonParsed, err := gabs.ParseJSON(body)
+	if err != nil {
+		fmt.Println("Error parsing API response:", err)
 		return
 	}
-	wordInfo := apiResponse[0]
-	if wordInfo.Fl == "" {
-		fmt.Println("Part of speech not found for the word:", word)
+
+	// Extract and display the word's pronunciation
+	pronunciation, ok := jsonParsed.Path("0.hwi.prs.0.mw").Data().(string)
+	if !ok {
+		fmt.Println("'%s':\n", word)
 	} else {
-		partOfSpeech := wordInfo.Fl
-		fmt.Printf("'%s':\n", strings.Replace(wordInfo.Hwi.Prs[0].Mw, "{noun}", "", -1))
-		fmt.Printf("('%s')\n", partOfSpeech)
+		fmt.Printf("'%s':\n", pronunciation)
 	}
 
 	// Extract and display all definitions from shortdef fields
-	shortdefs := wordInfo.Shortdef
+	shortdefs := jsonParsed.Path("0.shortdef").Children()
 	if len(shortdefs) == 0 {
 		fmt.Println("No definitions found for the word:", word)
 		return
 	}
 
 	for i, shortdef := range shortdefs {
-		fmt.Printf("%d. %s\n", i+1, shortdef)
+		definition, ok := shortdef.Data().(string)
+		if !ok {
+			fmt.Printf("%d. Definition not found\n", i+1)
+		} else {
+			fmt.Printf("%d. %s\n", i+1, definition)
+		}
 	}
 }
